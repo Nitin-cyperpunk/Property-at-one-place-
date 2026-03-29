@@ -1,0 +1,135 @@
+import Link from "next/link";
+
+import { resolveOwnerId } from "@/lib/dev-owner";
+import { createClient } from "@/lib/supabase/server";
+import { listMyProperties } from "@/lib/queries/properties";
+
+export const metadata = {
+  title: "Owner dashboard · RentSetGo",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function OwnerDashboardPage() {
+  const supabase = await createClient();
+  const ownerId = await resolveOwnerId(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!ownerId) {
+    return (
+      <div className="min-h-[calc(100vh-3.5rem)] bg-zinc-100">
+        <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
+            <h1 className="text-lg font-semibold">Owner dashboard</h1>
+            <p className="mt-2 text-sm text-amber-900/90">
+              Set <code className="rounded bg-amber-100/80 px-1.5 py-0.5">BYPASS_AUTH_OWNER_ID</code> and{" "}
+              <code className="rounded bg-amber-100/80 px-1.5 py-0.5">SUPABASE_SERVICE_ROLE_KEY</code> in{" "}
+              <code className="rounded bg-amber-100/80 px-1.5 py-0.5">.env.local</code> to use owner tools while
+              login is off.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const { rows: mine, error: listError } = await listMyProperties(ownerId);
+  const nowIso = new Date().toISOString();
+  const active = mine.filter((p) => {
+    const t = new Date(p.expires_at).getTime();
+    return Number.isFinite(t) && t > Date.now();
+  });
+
+  const who = user?.email ?? (user?.id ? user.id : `dev bypass (${ownerId.slice(0, 8)}…)`);
+
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-emerald-50/50 via-zinc-50 to-sky-50/30">
+      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+        <header className="mb-10">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700/80">Owner hub</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">Dashboard</h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            Acting as <span className="font-medium text-zinc-800">{who}</span>
+          </p>
+          <p className="mt-1 break-all font-mono text-xs text-zinc-500">
+            owner_id used for queries: {ownerId}
+          </p>
+        </header>
+
+        {listError && (
+          <div
+            className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-950"
+            role="alert"
+          >
+            <p className="font-medium">Could not load your listings from Supabase.</p>
+            <p className="mt-2">{listError}</p>
+            <p className="mt-2 text-red-900/90">
+              Add <code className="rounded bg-red-100/80 px-1">SUPABASE_SERVICE_ROLE_KEY</code> to{" "}
+              <code className="rounded bg-red-100/80 px-1">.env.local</code> (same as for saving), or add{" "}
+              <code className="rounded bg-red-100/80 px-1">SELECT</code> policies on{" "}
+              <code className="rounded bg-red-100/80 px-1">properties</code> and{" "}
+              <code className="rounded bg-red-100/80 px-1">property_images</code> for your auth role.
+            </p>
+          </div>
+        )}
+
+        {mine.length === 0 && !listError && (
+          <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="font-medium">No listings for this owner in the database.</p>
+            <p className="mt-2">
+              If rows exist in Supabase, the <code className="rounded bg-amber-100 px-1">owner_id</code> column must
+              match the UUID above (or your logged-in user). Update{" "}
+              <code className="rounded bg-amber-100 px-1">BYPASS_AUTH_OWNER_ID</code> to the same value as{" "}
+              <code className="rounded bg-amber-100 px-1">properties.owner_id</code>.
+            </p>
+          </div>
+        )}
+
+        <div className="mb-10 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/60 bg-white/90 p-6 shadow-lg shadow-zinc-200/50 backdrop-blur-sm">
+            <p className="text-sm font-medium text-zinc-500">Active listings</p>
+            <p className="mt-2 text-4xl font-bold tabular-nums text-emerald-700">{active.length}</p>
+          </div>
+          <div className="rounded-2xl border border-white/60 bg-white/90 p-6 shadow-lg shadow-zinc-200/50 backdrop-blur-sm">
+            <p className="text-sm font-medium text-zinc-500">Total</p>
+            <p className="mt-2 text-4xl font-bold tabular-nums text-zinc-900">{mine.length}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Link
+            href="/owner/add-property"
+            className="group flex flex-col rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white shadow-lg shadow-emerald-900/10 transition hover:scale-[1.01] hover:shadow-xl"
+          >
+            <span className="text-sm font-semibold uppercase tracking-wide text-emerald-100">Create</span>
+            <span className="mt-2 text-lg font-bold">Add a property</span>
+            <span className="mt-1 text-sm text-emerald-100/90">New listing & photos</span>
+            <span className="mt-4 text-sm font-medium text-white group-hover:underline">Open →</span>
+          </Link>
+
+          <Link
+            href="/owner/my-properties"
+            className="group flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-md shadow-zinc-200/40 transition hover:border-zinc-300 hover:shadow-lg"
+          >
+            <span className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Manage</span>
+            <span className="mt-2 text-lg font-bold text-zinc-900">My properties</span>
+            <span className="mt-1 text-sm text-zinc-600">Edit & delete listings</span>
+            <span className="mt-4 text-sm font-medium text-emerald-700 group-hover:underline">Open →</span>
+          </Link>
+
+          <Link
+            href="/"
+            className="group flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-md shadow-zinc-200/40 transition hover:border-zinc-300 hover:shadow-lg"
+          >
+            <span className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Public</span>
+            <span className="mt-2 text-lg font-bold text-zinc-900">Browse feed</span>
+            <span className="mt-1 text-sm text-zinc-600">See how renters view listings</span>
+            <span className="mt-4 text-sm font-medium text-emerald-700 group-hover:underline">Open →</span>
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}
