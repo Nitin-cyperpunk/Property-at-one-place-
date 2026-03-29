@@ -6,18 +6,11 @@ import { redirect } from "next/navigation";
 import { getProfileForUser, isOwnerRole } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
-function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
-  return raw;
-}
-
 export async function signInWithPassword(
   formData: FormData
 ): Promise<{ error?: string } | void> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const nextRaw = String(formData.get("next") ?? "/");
-  const next = safeNext(nextRaw);
 
   if (!email || !password) {
     return { error: "Email and password are required." };
@@ -36,13 +29,17 @@ export async function signInWithPassword(
     return { error: "Could not establish a session." };
   }
 
-  await getProfileForUser(supabase, user.id);
+  const profile = await getProfileForUser(supabase, user.id);
   revalidatePath("/", "layout");
 
-  const profile = await getProfileForUser(supabase, user.id);
-  const dest = isOwnerRole(profile?.role) ? "/owner/dashboard" : "/";
-  void next;
-  redirect(dest);
+  const nextRaw = String(formData.get("next") ?? "").trim();
+  const safeNext =
+    nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : null;
+  if (safeNext) {
+    redirect(safeNext);
+  }
+
+  redirect(isOwnerRole(profile?.role) ? "/owner/dashboard" : "/");
 }
 
 export async function signUpWithPassword(

@@ -1,14 +1,17 @@
 import Link from "next/link";
 
-// import { signOut } from "@/app/actions/auth";
-// import { createClient } from "@/lib/supabase/server";
+import { signOut } from "@/app/actions/auth";
+import { getProfileForUser, isOwnerRole } from "@/lib/auth/profile";
+import { createClient } from "@/lib/supabase/server";
 
 export async function Navbar() {
-  // Auth UI disabled — restore createClient + user checks when implementing login/logout
-  // const supabase = await createClient();
-  // const {
-  //   data: { user },
-  // } = await supabase.auth.getUser();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const profile = user ? await getProfileForUser(supabase, user.id) : null;
+  const showOwnerNav = user && isOwnerRole(profile?.role);
 
   return (
     <header className="border-b border-zinc-200 bg-white">
@@ -21,34 +24,35 @@ export async function Navbar() {
           <Link href="/" className="hover:text-zinc-900">
             Browse
           </Link>
-          <Link href="/owner/dashboard" className="hover:text-zinc-900">
-            Owner
-          </Link>
-          <Link href="/owner/my-properties" className="hover:text-zinc-900">
-            My properties
-          </Link>
-          {/* {user ? (
+          {showOwnerNav && (
             <>
               <Link href="/owner/dashboard" className="hover:text-zinc-900">
-                Owner
+                Owner dashboard
               </Link>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="text-zinc-500 hover:text-zinc-900"
-                >
-                  Logout
-                </button>
-              </form>
+              <Link href="/owner/my-properties" className="hover:text-zinc-900">
+                My properties
+              </Link>
             </>
+          )}
+          {user ? (
+            <form action={signOut}>
+              <button type="submit" className="text-zinc-500 hover:text-zinc-900">
+                Log out
+              </button>
+            </form>
           ) : (
-            <Link
-              href="/login"
-              className="rounded-md bg-zinc-900 px-3 py-1.5 text-white hover:bg-zinc-800"
-            >
-              Login
-            </Link>
-          )} */}
+            <>
+              <Link href="/login" className="hover:text-zinc-900">
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-md bg-zinc-900 px-3 py-1.5 text-white hover:bg-zinc-800"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

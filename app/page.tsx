@@ -55,11 +55,11 @@ export default async function HomePage({ searchParams }: PageProps) {
             <p className="font-medium">Could not load listings from Supabase.</p>
             <p className="mt-2">{listError}</p>
             <p className="mt-2 text-red-900/90">
-              Add <code className="rounded bg-red-100/80 px-1">SUPABASE_SERVICE_ROLE_KEY</code> to{" "}
-              <code className="rounded bg-red-100/80 px-1">.env.local</code> (same key as for saving listings), or add{" "}
+              Check Supabase URL and anon key in <code className="rounded bg-red-100/80 px-1">.env.local</code>, and add{" "}
               <code className="rounded bg-red-100/80 px-1">SELECT</code> policies on{" "}
               <code className="rounded bg-red-100/80 px-1">properties</code> and{" "}
-              <code className="rounded bg-red-100/80 px-1">property_images</code>.
+              <code className="rounded bg-red-100/80 px-1">property_images</code> for public or{" "}
+              <code className="rounded bg-red-100/80 px-1">anon</code> reads (for example active listings only).
             </p>
           </div>
         )}

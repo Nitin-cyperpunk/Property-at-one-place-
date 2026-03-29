@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { DeleteListingButton } from "@/components/DeleteListingButton";
 import { PropertyCardCarousel } from "@/components/PropertyCardCarousel";
@@ -26,21 +27,11 @@ function formatRentInr(amount: number) {
   }
 }
 
-
 export default async function MyPropertiesPage() {
   const supabase = await createClient();
   const ownerId = await resolveOwnerId(supabase);
   if (!ownerId) {
-    return (
-      <div className="min-h-[calc(100vh-3.5rem)] bg-zinc-100">
-        <main className="mx-auto max-w-3xl px-4 py-12">
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
-            Set <code className="rounded bg-amber-100 px-1">BYPASS_AUTH_OWNER_ID</code> in{" "}
-            <code className="rounded bg-amber-100 px-1">.env.local</code> to load your listings.
-          </p>
-        </main>
-      </div>
-    );
+    redirect("/login?next=%2Fowner%2Fmy-properties");
   }
 
   const { rows, error: listError } = await listMyProperties(ownerId);
@@ -68,10 +59,6 @@ export default async function MyPropertiesPage() {
           </Link>
         </div>
 
-        <p className="mt-4 break-all font-mono text-xs text-zinc-500">
-          owner_id: {ownerId}
-        </p>
-
         {listError && (
           <div
             className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-950"
@@ -80,20 +67,20 @@ export default async function MyPropertiesPage() {
             <p className="font-medium">Could not load listings.</p>
             <p className="mt-2">{listError}</p>
             <p className="mt-2 text-red-900/90">
-              Set <code className="rounded bg-red-100/80 px-1">SUPABASE_SERVICE_ROLE_KEY</code> in{" "}
-              <code className="rounded bg-red-100/80 px-1">.env.local</code> or fix RLS SELECT on{" "}
-              <code className="rounded bg-red-100/80 px-1">properties</code> /{" "}
-              <code className="rounded bg-red-100/80 px-1">property_images</code>.
+              Add <code className="rounded bg-red-100/80 px-1">SELECT</code> policies on{" "}
+              <code className="rounded bg-red-100/80 px-1">properties</code> and{" "}
+              <code className="rounded bg-red-100/80 px-1">property_images</code> for your role, or fix RLS so owners
+              can read rows where <code className="rounded bg-red-100/80 px-1">owner_id = auth.uid()</code>.
             </p>
           </div>
         )}
 
         {rows.length === 0 && !listError ? (
           <div className="mt-14 rounded-2xl border border-dashed border-zinc-300 bg-white/80 p-12 text-center">
-            <p className="text-zinc-600">No listings yet for this owner.</p>
+            <p className="text-zinc-600">No listings yet for your account.</p>
             <p className="mt-3 text-sm text-zinc-500">
-              If you already have rows in Supabase, make sure <code className="rounded bg-zinc-100 px-1">owner_id</code>{" "}
-              matches the UUID shown above.
+              If you already have rows in Supabase, ensure <code className="rounded bg-zinc-100 px-1">owner_id</code>{" "}
+              matches your user id.
             </p>
             <Link
               href="/owner/add-property"

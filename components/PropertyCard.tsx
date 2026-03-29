@@ -19,14 +19,19 @@ type Props = {
   property: PropertyWithImages;
 };
 
-const CARD_IMAGE_SIZES = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
+const CARD_IMAGE_SIZES =
+  "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
 export function PropertyCard({ property }: Props) {
   const imageUrls = allImageUrls(property);
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm transition hover:border-zinc-300">
-      <PropertyCardCarousel urls={imageUrls} propertyId={property.id} sizes={CARD_IMAGE_SIZES} />
+      <PropertyCardCarousel
+        urls={imageUrls}
+        propertyId={property.id}
+        sizes={CARD_IMAGE_SIZES}
+      />
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h2 className="line-clamp-2 text-[15px] font-medium leading-snug text-zinc-900">
@@ -43,7 +48,9 @@ export function PropertyCard({ property }: Props) {
           {property.property_type}
         </p>
         {property.location ? (
-          <p className="line-clamp-1 text-sm text-zinc-500">{property.location}</p>
+          <p className="line-clamp-1 text-sm text-zinc-500">
+            {property.location}
+          </p>
         ) : null}
         <Link
           href={`/property/${property.id}`}

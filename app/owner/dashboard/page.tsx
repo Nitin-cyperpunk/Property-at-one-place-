@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { resolveOwnerId } from "@/lib/dev-owner";
 import { createClient } from "@/lib/supabase/server";
@@ -18,31 +19,16 @@ export default async function OwnerDashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!ownerId) {
-    return (
-      <div className="min-h-[calc(100vh-3.5rem)] bg-zinc-100">
-        <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
-            <h1 className="text-lg font-semibold">Owner dashboard</h1>
-            <p className="mt-2 text-sm text-amber-900/90">
-              Set <code className="rounded bg-amber-100/80 px-1.5 py-0.5">BYPASS_AUTH_OWNER_ID</code> and{" "}
-              <code className="rounded bg-amber-100/80 px-1.5 py-0.5">SUPABASE_SERVICE_ROLE_KEY</code> in{" "}
-              <code className="rounded bg-amber-100/80 px-1.5 py-0.5">.env.local</code> to use owner tools while
-              login is off.
-            </p>
-          </div>
-        </main>
-      </div>
-    );
+    redirect("/login?next=%2Fowner%2Fdashboard");
   }
 
   const { rows: mine, error: listError } = await listMyProperties(ownerId);
-  const nowIso = new Date().toISOString();
   const active = mine.filter((p) => {
     const t = new Date(p.expires_at).getTime();
     return Number.isFinite(t) && t > Date.now();
   });
 
-  const who = user?.email ?? (user?.id ? user.id : `dev bypass (${ownerId.slice(0, 8)}…)`);
+  const who = user?.email ?? user?.id ?? "Owner";
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-emerald-50/50 via-zinc-50 to-sky-50/30">
@@ -51,10 +37,7 @@ export default async function OwnerDashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700/80">Owner hub</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">Dashboard</h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Acting as <span className="font-medium text-zinc-800">{who}</span>
-          </p>
-          <p className="mt-1 break-all font-mono text-xs text-zinc-500">
-            owner_id used for queries: {ownerId}
+            Signed in as <span className="font-medium text-zinc-800">{who}</span>
           </p>
         </header>
 
@@ -66,23 +49,21 @@ export default async function OwnerDashboardPage() {
             <p className="font-medium">Could not load your listings from Supabase.</p>
             <p className="mt-2">{listError}</p>
             <p className="mt-2 text-red-900/90">
-              Add <code className="rounded bg-red-100/80 px-1">SUPABASE_SERVICE_ROLE_KEY</code> to{" "}
-              <code className="rounded bg-red-100/80 px-1">.env.local</code> (same as for saving), or add{" "}
-              <code className="rounded bg-red-100/80 px-1">SELECT</code> policies on{" "}
+              In Supabase, add <code className="rounded bg-red-100/80 px-1">SELECT</code> policies on{" "}
               <code className="rounded bg-red-100/80 px-1">properties</code> and{" "}
-              <code className="rounded bg-red-100/80 px-1">property_images</code> for your auth role.
+              <code className="rounded bg-red-100/80 px-1">property_images</code> so authenticated owners can read
+              their own rows (for example <code className="rounded bg-red-100/80 px-1">owner_id = auth.uid()</code>
+              ).
             </p>
           </div>
         )}
 
         {mine.length === 0 && !listError && (
           <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-            <p className="font-medium">No listings for this owner in the database.</p>
+            <p className="font-medium">No listings for your account in the database yet.</p>
             <p className="mt-2">
-              If rows exist in Supabase, the <code className="rounded bg-amber-100 px-1">owner_id</code> column must
-              match the UUID above (or your logged-in user). Update{" "}
-              <code className="rounded bg-amber-100 px-1">BYPASS_AUTH_OWNER_ID</code> to the same value as{" "}
-              <code className="rounded bg-amber-100 px-1">properties.owner_id</code>.
+              If you expect existing rows, ensure <code className="rounded bg-amber-100 px-1">properties.owner_id</code>{" "}
+              matches your user id in Supabase Auth.
             </p>
           </div>
         )}

@@ -3,12 +3,10 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getBypassOwnerId, resolveOwnerId } from "@/lib/dev-owner";
+import { resolveOwnerId } from "@/lib/dev-owner";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseForReads } from "@/lib/supabase/server-reads";
-import { getDbClientForWrites } from "@/lib/supabase/db-writes";
 import { getListingBucketId } from "@/lib/supabase/bucket";
-import { getStorageClientForUploads } from "@/lib/supabase/storage-server";
 import type { PropertyWithImages } from "@/types/property";
 
 const propertySelect = `
@@ -22,42 +20,24 @@ function safeFileName(name: string) {
 
 async function getClientsForOwnerAction() {
   const supabase = await createClient();
-  const ownerId = await resolveOwnerId(supabase);
-  if (!ownerId) {
-    return { error: "No owner id: sign in or set BYPASS_AUTH_OWNER_ID in .env.local." as const };
-  }
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Prefer service role for DB + Storage when key is set (bypasses RLS — common reason saves fail).
-  const serviceDb = getDbClientForWrites();
-  if (serviceDb) {
-    return { ownerId, db: serviceDb, storage: serviceDb };
+  if (!user) {
+    return { error: "Sign in to manage listings." as const };
   }
 
-  // No service key: need a real session for RLS, or bypass id without session is blocked.
-  if (!user && getBypassOwnerId()) {
-    return {
-      error:
-        "Add SUPABASE_SERVICE_ROLE_KEY to .env.local (Project Settings → API → service_role). Without it, row-level security blocks inserts when login is off." as const,
-    };
-  }
-
-  const storage = getStorageClientForUploads(supabase);
-  return { ownerId, db: supabase, storage };
+  return { ownerId: user.id, db: supabase, storage: supabase };
 }
 
 function dbErrorMessage(err: { message: string; hint?: string | null; details?: string | null; code?: string }) {
   const parts = [err.message, err.hint, err.details].filter(Boolean);
   if (err.code?.startsWith("23503")) {
-    parts.push(
-      "Foreign key failed: owner_id must exist in the referenced users table (same UUID as your auth user or bypass).",
-    );
+    parts.push("Foreign key failed: ensure you are signed in and your account is valid.");
   }
   if (err.code === "42501" || err.message?.toLowerCase().includes("row-level security")) {
-    parts.push("RLS blocked this — add SUPABASE_SERVICE_ROLE_KEY for server writes, or add INSERT policies.");
+    parts.push("RLS blocked this — sign in and ensure storage/database policies allow your role.");
   }
   return parts.join(" ");
 }
@@ -86,7 +66,7 @@ async function uploadImages(
           : "";
       return {
         urls: [],
-        error: `Image upload failed: ${upErr.message}.${hint} Ensure SUPABASE_SERVICE_ROLE_KEY is set on the server for uploads, or add Storage policies for authenticated users.`,
+        error: `Image upload failed: ${upErr.message}.${hint} Sign in and ensure Storage policies allow uploads for authenticated users.`,
       };
     }
     const { data: pub } = storage.storage.from(bucket).getPublicUrl(path);
@@ -348,21 +328,11 @@ export async function updateListing(propertyId: string, formData: FormData) {
 }
 
 export async function deleteProperty(id: string) {
-  const supabase = await createClient();
-  const ownerId = await resolveOwnerId(supabase);
-  if (!ownerId) {
-    return { error: "Not signed in." };
+  const clients = await getClientsForOwnerAction();
+  if ("error" in clients) {
+    return { error: clients.error };
   }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const serviceDb = getDbClientForWrites();
-  const db = serviceDb ?? supabase;
-
-  if (!serviceDb && !user && getBypassOwnerId()) {
-    return { error: "Add SUPABASE_SERVICE_ROLE_KEY to .env.local to delete listings while login is off." };
-  }
+  const { ownerId, db } = clients;
 
   const { error } = await db.from("properties").delete().eq("id", id).eq("owner_id", ownerId);
 
