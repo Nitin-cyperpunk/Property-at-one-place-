@@ -29,7 +29,7 @@ export function FavoriteButton({ propertyId, initialFavorited = false, className
         return;
       }
       if (res && "favorited" in res) {
-        setFavorited(res.favorited);
+        setFavorited(res.favorited === true);
       }
       router.refresh();
     } finally {
