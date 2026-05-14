@@ -34,7 +34,7 @@ function QrFrame({
       <img
         src={src}
         alt={alt}
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        className="absolute inset-0 h-full w-full scale-[1.35] object-cover object-center"
         loading="eager"
         decoding="async"
       />
