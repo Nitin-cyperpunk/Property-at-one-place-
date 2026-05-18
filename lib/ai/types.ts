@@ -18,8 +18,25 @@ export type PropertyDescriptionInput = {
 };
 
 export type PosterTaglines = {
+  /** Locality / area name (large headline) */
   headline: string;
+  /** Short tagline under headline */
+  tagline?: string;
   bullets: string[];
   locationLine: string;
   priceLine: string;
+};
+
+export type PosterRenderMeta = {
+  dealType?: "rent" | "sale";
+  propertyType?: string;
+  title?: string;
+  location?: string | null;
+  priceDisplay?: string;
+  floor?: string | null;
+  furnishing?: string | null;
+  parking?: string | null;
+  balcony?: string | null;
+  bedrooms?: number | null;
+  contactPhone?: string | null;
 };

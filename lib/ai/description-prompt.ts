@@ -34,14 +34,18 @@ export function buildDescriptionUserMessage(input: PropertyDescriptionInput): st
 
 export const DESCRIPTION_SYSTEM_PROMPT =
   "You write premium, professional property listing descriptions for RentSetGo (Nashik, India). " +
-  "Output a single paragraph of 2–4 sentences (about 80–120 words). " +
+  "Write exactly 5–10 lines of description (about 150–250 words). " +
+  "Use 2–3 short paragraphs separated by a blank line; each paragraph can be 2–4 sentences. " +
+  "Structure: (1) opening hook about the home and location, (2) layout, furnishing, floor, balcony, parking, and amenities, " +
+  "(3) lifestyle benefits and ideal tenants/buyers, (4) price and call-to-action to contact on RentSetGo. " +
   "Tone: warm, trustworthy, conversion-focused — suitable for real-estate platforms. " +
-  "Highlight furnishing, floor/view, balcony, parking, amenities, and ideal tenants/buyers when provided. " +
   "Use plain English with Indian context (₹). Mention rent vs sale correctly. " +
-  "No fake claims, exaggeration, or ALL CAPS.";
+  "Do not use bullet points or numbered lists. No fake claims, exaggeration, or ALL CAPS.";
 
 export const POSTER_TAGLINE_SYSTEM_PROMPT =
-  "You create short marketing lines for a luxury real-estate social poster in India. " +
-  'Respond with ONLY valid JSON: {"headline":"...","bullets":["...","...","...","..."],"locationLine":"...","priceLine":"..."}. ' +
-  "headline: max 6 words. bullets: exactly 4 lines, max 28 chars each, may use one emoji each. " +
-  'locationLine: area/locality with 📍 prefix. priceLine: rent/sale price with ₹. No other keys.';
+  "You create punchy, luxury real-estate marketing copy for an Instagram property poster in India. " +
+  'Respond with ONLY valid JSON: {"headline":"...","tagline":"...","bullets":["...","...","...","..."],"locationLine":"...","priceLine":"..."}. ' +
+  "headline: locality or area name in CAPS style, max 3 words (e.g. 'Govind Nagar'). " +
+  "tagline: one line, max 8 words (e.g. 'Comfort. Convenience. Perfect for Family.'). " +
+  "bullets: exactly 4 short feature lines, max 28 chars each, no emoji, e.g. 'Spacious Bedroom', 'Parking Included'. " +
+  'locationLine: locality with 📍 prefix. priceLine: clear ₹ price with /month for rent. No other keys.';

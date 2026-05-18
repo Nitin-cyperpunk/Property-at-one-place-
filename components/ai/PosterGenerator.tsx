@@ -21,7 +21,9 @@ export function PosterGenerator({
   initialPosterUrl,
   hasImages = false,
 }: Props) {
-  const [posterUrl, setPosterUrl] = useState<string | null>(initialPosterUrl ?? null);
+  const [posterUrl, setPosterUrl] = useState<string | null>(
+    initialPosterUrl ?? null
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -65,8 +67,8 @@ export function PosterGenerator({
   const disabledReason = !propertyId
     ? "Save your listing first, then generate an AI marketing poster."
     : !hasImages
-      ? "Upload at least one property photo before generating a poster."
-      : null;
+    ? "Upload at least one property photo before generating a poster."
+    : null;
 
   return (
     <>
@@ -84,7 +86,9 @@ export function PosterGenerator({
             {remaining != null && remaining < 99 ? (
               <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
                 {remaining > 0
-                  ? `${remaining} free poster generation${remaining === 1 ? "" : "s"} left`
+                  ? `${remaining} free poster generation${
+                      remaining === 1 ? "" : "s"
+                    } left`
                   : "No free generations left"}
               </p>
             ) : null}
@@ -92,7 +96,11 @@ export function PosterGenerator({
             {pending ? (
               <div className="aspect-[4/5] max-w-sm mx-auto animate-pulse rounded-xl bg-gradient-to-br from-zinc-200 to-emerald-100 dark:from-zinc-800 dark:to-emerald-950" />
             ) : posterUrl ? (
-              <PosterPreview posterUrl={posterUrl} title={propertyTitle} />
+              <PosterPreview
+                posterUrl={posterUrl}
+                title={propertyTitle}
+                propertyId={propertyId}
+              />
             ) : null}
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -116,7 +124,9 @@ export function PosterGenerator({
           </>
         )}
 
-        {error ? <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>
+        ) : null}
       </AISectionCard>
 
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />

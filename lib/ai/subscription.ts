@@ -1,4 +1,4 @@
-export const FREE_POSTER_GENERATION_LIMIT = 2;
+export const FREE_POSTER_GENERATION_LIMIT = 4;
 
 export type SubscriptionStatus = "free" | "active" | "canceled" | "past_due";
 
