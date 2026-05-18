@@ -117,7 +117,7 @@ export function AIDescriptionGenerator({
         setHint(
           result.usedAi
             ? "AI description ready — edit before publishing."
-            : "Template draft added — set OPENAI_API_KEY for full AI.",
+            : "Template draft added — set GEMINI_API_KEY in .env.local for full AI.",
         );
       }
     } finally {
@@ -224,7 +224,7 @@ export function AIDescriptionGenerator({
 
       {pending ? (
         <div className="mt-4 space-y-2" aria-busy="true">
-          <div className="h-24 animate-pulse rounded-xl bg-gradient-to-r from-zinc-200 via-zinc-100 to-zinc-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800" />
+          <div className="h-40 animate-pulse rounded-xl bg-gradient-to-r from-zinc-200 via-zinc-100 to-zinc-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800" />
           <p className="text-xs text-zinc-500">Crafting your description…</p>
         </div>
       ) : (
@@ -234,8 +234,8 @@ export function AIDescriptionGenerator({
           form={formId}
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          rows={5}
-          placeholder="Your listing description will appear here…"
+          rows={10}
+          placeholder="Your listing description (5–10 lines) will appear here…"
           className="mt-4 w-full resize-y rounded-xl border border-zinc-200/90 bg-white/90 px-4 py-3 text-sm leading-relaxed text-zinc-900 shadow-inner outline-none transition focus:ring-2 focus:ring-emerald-500/25 dark:border-zinc-600 dark:bg-zinc-950/60 dark:text-zinc-100"
         />
       )}

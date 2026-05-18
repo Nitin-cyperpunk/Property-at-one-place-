@@ -8,15 +8,19 @@ import {
   formatInrPrice,
   POSTER_TAGLINE_SYSTEM_PROMPT,
 } from "@/lib/ai/description-prompt";
-import { chatCompletion, getOpenAiConfig } from "@/lib/ai/openai";
+import { chatCompletion, getGeminiConfig } from "@/lib/ai/gemini";
 import { fallbackPosterTaglines, renderPropertyPoster } from "@/lib/ai/poster-render";
-import { canGeneratePoster, isProSubscriber } from "@/lib/ai/subscription";
+import {
+  canGeneratePoster,
+  FREE_POSTER_GENERATION_LIMIT,
+  isProSubscriber,
+} from "@/lib/ai/subscription";
 import type { PosterTaglines, PropertyDescriptionInput } from "@/lib/ai/types";
 import { ensureProfileIfMissing } from "@/lib/auth/profile";
 import { parseDealType, parseListingCategory } from "@/lib/listing";
 import { createClient } from "@/lib/supabase/server";
 import { getListingBucketId } from "@/lib/supabase/bucket";
-import { coverImageUrl, type PropertyWithImages } from "@/types/property";
+import { allImageUrls, type PropertyWithImages } from "@/types/property";
 
 function parseDescriptionInput(formData: FormData): PropertyDescriptionInput {
   const amenities = formData
@@ -58,17 +62,22 @@ function templateDescription(input: PropertyDescriptionInput): string {
     .filter(Boolean)
     .join(", ");
 
-  const amenityPart =
+  const amenitiesLine =
     input.amenities && input.amenities.length > 0
-      ? ` Amenities include ${input.amenities.slice(0, 5).join(", ")}.`
+      ? ` Key highlights: ${input.amenities.slice(0, 6).join(", ")}.`
       : "";
 
   const price = formatInrPrice(input.price, input.deal_type);
-  return (
-    `Beautiful ${furnish}${bhk}${type} ${deal} in ${loc}${extras ? `, ${extras}` : ""}. ` +
-    `Priced at ${price} — ideal for families and professionals seeking comfort and convenience.${amenityPart} ` +
-    `Contact the owner on RentSetGo to schedule a visit.`
-  );
+  const areaPart = input.area_sqft ? `Spread across ${input.area_sqft} sqft, ` : "";
+  const bathPart =
+    input.bathrooms != null ? ` It includes ${input.bathrooms} bathroom${input.bathrooms === 1 ? "" : "s"}.` : "";
+
+  return [
+    `Discover a well-presented ${furnish}${bhk}${type} ${deal} in ${loc}${extras ? `, ${extras}` : ""}. ${areaPart}this home offers a comfortable layout suited for everyday living in Nashik.`,
+    `The property is thoughtfully laid out with practical finishes and good natural light.${bathPart}${amenitiesLine}`,
+    `Ideal for families and working professionals who value convenience, connectivity, and a peaceful neighbourhood. The space is ready for you to move in and make it your own.`,
+    `Listed at ${price}${input.deal_type === "rent" ? " per month" : ""}. Contact the owner on RentSetGo to schedule a visit and explore this opportunity.`,
+  ].join("\n\n");
 }
 
 /**
@@ -85,7 +94,7 @@ export async function generateListingDescription(formData: FormData): Promise<{
     return { error: "Add a title or a few notes before generating." };
   }
 
-  const { key } = getOpenAiConfig();
+  const { key } = getGeminiConfig();
   if (!key) {
     return { text: templateDescription(input), usedAi: false };
   }
@@ -93,7 +102,7 @@ export async function generateListingDescription(formData: FormData): Promise<{
   const result = await chatCompletion(
     DESCRIPTION_SYSTEM_PROMPT,
     buildDescriptionUserMessage(input),
-    { maxTokens: 350, temperature: 0.65 },
+    { maxTokens: 900, temperature: 0.7 },
   );
 
   if (result.error || !result.text) {
@@ -128,7 +137,7 @@ async function generateTaglines(
     amenities: property.amenities ?? undefined,
   };
 
-  const { key } = getOpenAiConfig();
+  const { key } = getGeminiConfig();
   if (!key) {
     return fallbackPosterTaglines(property.title, location, priceLine, property.furnishing);
   }
@@ -212,17 +221,18 @@ export async function generatePropertyPoster(propertyId: string): Promise<Poster
   }
 
   const typed = property as PropertyWithImages;
-  const cover = coverImageUrl(typed);
-  if (!cover) {
+  const images = allImageUrls(typed);
+  if (!images.length) {
     return { error: "Upload at least one property photo first.", code: "NO_IMAGE" };
   }
+
+  const dealType = parseDealType(typed.deal_type);
 
   let taglines: PosterTaglines;
   try {
     taglines = await generateTaglines(typed);
   } catch (e) {
     console.error("[generatePropertyPoster taglines]", e);
-    const dealType = parseDealType(typed.deal_type);
     taglines = fallbackPosterTaglines(
       typed.title,
       typed.location,
@@ -233,7 +243,19 @@ export async function generatePropertyPoster(propertyId: string): Promise<Poster
 
   let png: Buffer;
   try {
-    png = await renderPropertyPoster(cover, taglines);
+    png = await renderPropertyPoster(images, taglines, {
+      dealType,
+      propertyType: typed.property_type,
+      title: typed.title,
+      location: typed.location,
+      priceDisplay: `₹${typed.price.toLocaleString("en-IN")}`,
+      floor: typed.floor,
+      furnishing: typed.furnishing,
+      parking: typed.parking,
+      balcony: typed.balcony,
+      bedrooms: typed.bedrooms,
+      contactPhone: typed.contact_phone,
+    });
   } catch (e) {
     console.error("[generatePropertyPoster render]", e);
     return { error: "Could not create poster image. Try again." };
@@ -288,7 +310,10 @@ export async function generatePropertyPoster(propertyId: string): Promise<Poster
 
   const remaining = isProSubscriber(profile)
     ? undefined
-    : Math.max(0, 2 - ((profile.poster_generation_count ?? 0) + 1));
+    : Math.max(
+        0,
+        FREE_POSTER_GENERATION_LIMIT - ((profile.poster_generation_count ?? 0) + 1),
+      );
 
   return { url: posterUrl, remaining };
 }
@@ -323,7 +348,10 @@ export async function getPosterQuota(): Promise<{
   }
 
   return {
-    remaining: Math.max(0, 2 - (profile.poster_generation_count ?? 0)),
+    remaining: Math.max(
+      0,
+      FREE_POSTER_GENERATION_LIMIT - (profile.poster_generation_count ?? 0),
+    ),
     isPro: false,
   };
 }
