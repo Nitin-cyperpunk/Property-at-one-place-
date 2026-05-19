@@ -14,6 +14,7 @@ import {
   type DealType,
   type ListingCategory,
 } from "@/lib/listing";
+import { notify } from "@/lib/toast";
 import { allImageUrls, type PropertyWithImages } from "@/types/property";
 
 const FORM_ID = "property-listing-form";
@@ -65,8 +66,10 @@ export function PropertyForm({ property, showNewListingBanner }: Props) {
       }
       if (result?.ok) {
         if (!isEdit && "propertyId" in result && result.propertyId) {
+          notify.propertyPublished();
           router.push(`/owner/edit/${result.propertyId}?new=1`);
         } else {
+          notify.propertyUpdated();
           router.push("/owner/my-properties");
         }
         router.refresh();

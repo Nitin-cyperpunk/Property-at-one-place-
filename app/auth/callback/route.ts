@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { resolvePostAuthRedirect } from "@/lib/auth/post-auth";
 import { safeNextPath } from "@/lib/auth/urls";
+import { pathWithToast } from "@/lib/toast";
 
 export async function GET(request: Request) {
   try {
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
       nextRaw
     );
 
-    return NextResponse.redirect(new URL(path, url.origin));
+    return NextResponse.redirect(new URL(pathWithToast(path, "welcome-back"), url.origin));
   } catch (err) {
     console.error("OAuth callback crash:", err);
 

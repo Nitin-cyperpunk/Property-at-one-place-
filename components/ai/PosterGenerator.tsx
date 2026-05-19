@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { generatePropertyPoster, getPosterQuota } from "@/app/actions/ai";
+import { notify } from "@/lib/toast";
 import { AISectionCard } from "@/components/ai/AISectionCard";
 import { GenerateButton } from "@/components/ai/GenerateButton";
 import { PosterPreview } from "@/components/ai/PosterPreview";
@@ -30,6 +31,7 @@ export function PosterGenerator({
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [styleLabel, setStyleLabel] = useState<string | null>(null);
   const [layoutLabel, setLayoutLabel] = useState<string | null>(null);
+  const [hadPoster, setHadPoster] = useState(Boolean(initialPosterUrl));
 
   useEffect(() => {
     setPosterUrl(initialPosterUrl ?? null);
@@ -50,18 +52,28 @@ export function PosterGenerator({
       const result = await generatePropertyPoster(propertyId);
       if (result.code === "UPGRADE") {
         setShowUpgrade(true);
-        setError(result.error ?? "Upgrade to generate more posters.");
+        const msg = result.error ?? "Upgrade to generate more posters.";
+        setError(msg);
+        notify.error(msg);
         return;
       }
       if (result.error) {
         setError(result.error);
+        notify.error(result.error);
         return;
       }
       if (result.url) {
+        const isRegen = hadPoster;
         setPosterUrl(result.url);
+        setHadPoster(true);
         if (result.remaining != null) setRemaining(result.remaining);
         setStyleLabel(result.styleLabel ?? null);
         setLayoutLabel(result.layoutLabel ?? null);
+        if (isRegen) {
+          notify.posterRegenerated();
+        } else {
+          notify.posterGenerated(result.styleLabel, result.layoutLabel);
+        }
       }
     } finally {
       setPending(false);
