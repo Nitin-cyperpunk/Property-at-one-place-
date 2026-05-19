@@ -28,7 +28,7 @@ export default async function SignupCompletePage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const nextPath = safeNextPath(sp.next);
 
-  if (hasProfilePhone(profile?.phone)) {
+  if (profile && hasProfilePhone(profile.phone)) {
     if (nextPath) redirect(nextPath);
     redirect(isOwnerRole(profile.role) ? "/owner/dashboard" : "/");
   }
