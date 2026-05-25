@@ -4,14 +4,11 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { parseDealType, parseListingCategory } from "@/lib/listing";
-<<<<<<< HEAD
 import {
   propertyPath,
+  propertyPathFromRow,
   resolveUniquePropertySlug,
 } from "@/lib/property-slug";
-=======
-import { propertyPath } from "@/lib/seo";
->>>>>>> 14f029c4aa10a1a07b9237d1773200a6aaa932ca
 import { ensureProfileIfMissing } from "@/lib/auth/profile";
 import { resolveOwnerId } from "@/lib/dev-owner";
 import { createClient } from "@/lib/supabase/server";
@@ -44,10 +41,14 @@ async function getClientsForOwnerAction() {
 }
 
 async function revalidateListingPaths(propertyId: string) {
-  revalidatePath("/");
   const row = await getPropertyById(propertyId);
-  if (row) {
-    revalidatePath(propertyPath(row));
+  if (row?.slug) {
+    await revalidatePropertyPaths(row.slug);
+  } else {
+    revalidatePath("/");
+    revalidatePath("/owner/my-properties");
+    revalidatePath("/owner/dashboard");
+    if (row) revalidatePath(propertyPathFromRow(row));
   }
   revalidatePath(`/property/${propertyId}`);
 }
@@ -407,13 +408,7 @@ export async function updateListing(propertyId: string, formData: FormData) {
     }
   }
 
-<<<<<<< HEAD
   await revalidatePropertyPaths(existing.data.slug);
-=======
-  revalidatePath("/");
-  revalidatePath("/owner/my-properties");
-  await revalidateListingPaths(propertyId);
->>>>>>> 14f029c4aa10a1a07b9237d1773200a6aaa932ca
   return { ok: true as const };
 }
 
@@ -514,14 +509,7 @@ export async function extendListingExpiry(propertyId: string) {
     return { error: dbErrorMessage(upErr) };
   }
 
-<<<<<<< HEAD
   if (listing.slug) await revalidatePropertyPaths(listing.slug);
-=======
-  revalidatePath("/");
-  revalidatePath("/owner/my-properties");
-  revalidatePath("/owner/dashboard");
-  await revalidateListingPaths(propertyId);
->>>>>>> 14f029c4aa10a1a07b9237d1773200a6aaa932ca
   return { ok: true as const, expires_at: next.toISOString() };
 }
 
@@ -553,10 +541,6 @@ export async function setListingAvailability(propertyId: string, status: "availa
     .maybeSingle();
   revalidatePath("/");
   revalidatePath("/owner/my-properties");
-<<<<<<< HEAD
   if (row?.slug) await revalidatePropertyPaths(row.slug);
-=======
-  await revalidateListingPaths(propertyId);
->>>>>>> 14f029c4aa10a1a07b9237d1773200a6aaa932ca
   return { ok: true as const };
 }

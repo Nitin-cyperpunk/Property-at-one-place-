@@ -5,15 +5,10 @@
   "packageManager": "pnpm@11.3.0",
   "scripts": {
     "sync:qr": "node scripts/sync-qr.mjs",
-<<<<<<< HEAD
     "sync:brand": "node scripts/sync-brand.mjs",
-    "dev": "pnpm sync:qr && pnpm sync:brand && next dev",
-    "build": "pnpm sync:qr && pnpm sync:brand && next build",
-=======
     "og:generate": "node scripts/generate-og-image.mjs",
-    "dev": "pnpm sync:qr && pnpm og:generate && next dev",
-    "build": "pnpm sync:qr && pnpm og:generate && next build",
->>>>>>> 14f029c4aa10a1a07b9237d1773200a6aaa932ca
+    "dev": "pnpm sync:qr && pnpm sync:brand && pnpm og:generate && next dev",
+    "build": "pnpm sync:qr && pnpm sync:brand && pnpm og:generate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:types": "pnpm dlx supabase@latest gen types typescript --linked > types/database.types.ts",
