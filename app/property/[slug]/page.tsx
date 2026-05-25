@@ -4,16 +4,45 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { getPropertyById, getPropertyBySlug } from "@/app/actions/properties";
 import { ListingBadges } from "@/components/ListingBadges";
-import { createClient } from "@/lib/supabase/server";
-import { parseDealType, priceSuffix } from "@/lib/listing";
-import { isPropertyUuid, propertyPath } from "@/lib/property-slug";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
 import { PropertyOwnerContact } from "@/components/PropertyOwnerContact";
+import { createClient } from "@/lib/supabase/server";
+import { parseDealType, priceSuffix } from "@/lib/listing";
+import { isPropertyUuid, propertyPath as slugPath } from "@/lib/property-slug";
+import {
+  breadcrumbJsonLd,
+  buildPropertyMetadata,
+  propertyPath as listingPath,
+  realEstateListingJsonLd,
+} from "@/lib/seo";
 import { galleryImages } from "@/types/property";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+async function resolveProperty(param: string) {
+  const trimmed = param.trim();
+  if (isPropertyUuid(trimmed)) {
+    const byId = await getPropertyById(trimmed);
+    if (!byId) return null;
+    if (byId.slug) {
+      permanentRedirect(slugPath(byId.slug));
+    }
+    return byId;
+  }
+  return getPropertyBySlug(trimmed);
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug: param } = await params;
+  const property = await resolveProperty(param);
+  if (!property) {
+    return { title: "Listing not found", robots: { index: false, follow: false } };
+  }
+  return buildPropertyMetadata(property);
+}
 
 function formatPriceInr(amount: number) {
   try {
@@ -27,53 +56,11 @@ function formatPriceInr(amount: number) {
   }
 }
 
-function descriptionSnippet(
-  description: string | null | undefined,
-  fallback: string,
-): string {
-  const raw = description?.trim() ?? "";
-  if (!raw) return fallback;
-  if (raw.length <= 150) return raw;
-  return `${raw.slice(0, 150)}…`;
-}
-
-async function resolveProperty(param: string) {
-  const trimmed = param.trim();
-  if (isPropertyUuid(trimmed)) {
-    const byId = await getPropertyById(trimmed);
-    if (!byId) return null;
-    if (byId.slug) {
-      permanentRedirect(propertyPath(byId.slug));
-    }
-    return byId;
-  }
-  return getPropertyBySlug(trimmed);
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug: param } = await params;
-  const property = isPropertyUuid(param)
-    ? await getPropertyById(param)
-    : await getPropertyBySlug(param);
-  if (!property) {
-    return { title: "Listing not found" };
-  }
-  const title = property.location
-    ? `${property.title} in ${property.location}`
-    : property.title;
-  const canonical = propertyPath(property.slug);
-  return {
-    title,
-    description: descriptionSnippet(property.description, property.title),
-    alternates: { canonical },
-  };
-}
-
 export default async function PropertyDetailPage({ params }: PageProps) {
   const { slug: param } = await params;
   const canonicalPath = isPropertyUuid(param)
     ? `/property/${param}`
-    : propertyPath(param);
+    : slugPath(param);
 
   const supabase = await createClient();
   const {
@@ -92,17 +79,24 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   const salePriceLooksLikeRent =
     dealType === "sale" && property.price > 0 && property.price < 100_000;
 
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Listings", path: "/#browse" },
+    { name: property.title, path: listingPath(property) },
+  ]);
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-b from-white via-emerald-50/30 to-zinc-50 dark:from-zinc-950 dark:via-emerald-950/25 dark:to-zinc-900">
+      <JsonLd data={[breadcrumbs, realEstateListingJsonLd(property)]} />
       <main className="mx-auto max-w-4xl px-4 py-12 sm:px-8">
-        <div className="mb-6 flex items-center gap-2">
+        <nav className="mb-6 flex items-center gap-2 text-sm" aria-label="Breadcrumb">
           <Link
             href="/"
-            className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 transition hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-300"
+            className="inline-flex items-center gap-1 font-medium text-emerald-700 transition hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-300"
           >
             <span aria-hidden>←</span> All listings
           </Link>
-        </div>
+        </nav>
         <article className="rounded-2xl border border-zinc-200/80 bg-white/95 shadow-xl shadow-zinc-200/50 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40">
           <div className="lg:grid lg:grid-cols-[1.45fr_0.85fr] lg:items-start">
             <div className="min-w-0 p-6 pb-10 md:p-10 md:pb-12">

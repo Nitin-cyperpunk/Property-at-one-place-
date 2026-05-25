@@ -82,7 +82,14 @@ export function PropertyCardCarousel({
   if (n === 1) {
     return (
       <ImageNav className={`relative block ${aspectClass} bg-zinc-100 dark:bg-zinc-800`}>
-        <Image src={urls[0]} alt="" fill className="object-cover" sizes={sizes} priority={false} />
+        <Image
+          src={urls[0]}
+          alt="Property listing"
+          fill
+          className="object-cover"
+          sizes={sizes}
+          loading="lazy"
+        />
       </ImageNav>
     );
   }
@@ -114,7 +121,14 @@ export function PropertyCardCarousel({
           aria-hidden={i !== index}
         >
           <ImageNav className="block h-full w-full">
-            <Image src={url} alt="" fill className="object-cover" sizes={sizes} />
+            <Image
+              src={url}
+              alt="Property listing"
+              fill
+              className="object-cover"
+              sizes={sizes}
+              loading="lazy"
+            />
           </ImageNav>
         </div>
       ))}

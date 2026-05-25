@@ -34,8 +34,7 @@ export function PropertyCardInteractive({
   const deal = parseDealType(property.deal_type);
   const priceSfx = priceSuffix(deal);
 
-  const titleLinkClass =
-    "hover:underline dark:text-zinc-100";
+  const titleLinkClass = "hover:underline dark:text-zinc-100";
   const viewDetailsClass =
     "mt-auto inline-flex w-fit items-center text-sm font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100";
 
@@ -52,28 +51,24 @@ export function PropertyCardInteractive({
         <div className="flex flex-1 flex-col gap-2 p-4">
           <div className="flex items-start justify-between gap-2">
             <h2 className="line-clamp-2 text-[15px] font-medium leading-snug text-zinc-900 dark:text-zinc-100">
-              {isLoggedIn ? (
-                <Link href={detailPath} className={titleLinkClass}>
-                  {property.title}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onRequireLogin}
-                  className={`text-left ${titleLinkClass}`}
-                >
-                  {property.title}
-                </button>
-              )}
+              <Link href={detailPath} className={titleLinkClass}>
+                {property.title}
+              </Link>
             </h2>
             <p className="shrink-0 text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
               {formattedRent}
               {priceSfx ? (
-                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">{priceSfx}</span>
+                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                  {priceSfx}
+                </span>
               ) : null}
             </p>
           </div>
-          <ListingBadges dealType={property.deal_type} category={property.category} compact />
+          <ListingBadges
+            dealType={property.deal_type}
+            category={property.category}
+            compact
+          />
           <p className="text-xs font-medium uppercase tracking-wide text-emerald-800/80 dark:text-emerald-400/90">
             {property.property_type}
           </p>
@@ -82,15 +77,9 @@ export function PropertyCardInteractive({
               {property.location}
             </p>
           ) : null}
-          {isLoggedIn ? (
-            <Link href={detailPath} className={viewDetailsClass}>
-              View details
-            </Link>
-          ) : (
-            <button type="button" onClick={onRequireLogin} className={viewDetailsClass}>
-              View details
-            </button>
-          )}
+          <Link href={detailPath} className={viewDetailsClass}>
+            View details
+          </Link>
         </div>
       </article>
 
