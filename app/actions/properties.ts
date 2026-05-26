@@ -467,9 +467,36 @@ export async function getPropertyForOwner(id: string): Promise<PropertyWithImage
   const ownerId = await resolveOwnerId(supabase);
   if (!ownerId) return null;
 
-  const row = await getPropertyById(id);
-  if (!row || row.owner_id !== ownerId) return null;
-  return row;
+  const { data, error } = await supabase
+    .from("properties")
+    .select(propertySelect)
+    .eq("id", id)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (!error && data) {
+    return data as PropertyWithImages;
+  }
+
+  if (error) {
+    console.error("[getPropertyForOwner] select with property_images failed:", error);
+  }
+
+  const { data: flat, error: flatErr } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", id)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (flatErr || !flat) {
+    return null;
+  }
+
+  return {
+    ...flat,
+    property_images: null,
+  } as PropertyWithImages;
 }
 
 /** Extend listing expiry by 30 days (owner only). */
